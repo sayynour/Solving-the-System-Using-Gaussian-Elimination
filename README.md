@@ -1,61 +1,73 @@
-import numpy as np
-
-   # Function to solve the system using Gaussian elimination and show steps
+# Function to solve the system using Gaussian elimination and show steps
 def gaussian_elimination(A, B):
     n = len(B)
-    augmented_matrix = np.hstack([A, B.reshape(-1, 1)])
-
- for i in range(n):
-            # Find the row with the largest pivot element in the current column
-        max_row = i + np.argmax(np.abs(augmented_matrix[i:, i]))
+    for i in range(n):
+        # Find the row with the largest pivot element in the current column
+        max_row = max(range(i, n), key=lambda r: abs(A[r][i]))
         if i != max_row:
             # Swap rows
-            augmented_matrix[[i, max_row]] = augmented_matrix[[max_row, i]]
-            print(f"\nSwapping row {i+1} with row {max_row+1}:")
-            print(augmented_matrix)
+            A[i], A[max_row] = A[max_row], A[i]
+            B[i], B[max_row] = B[max_row], B[i]
+            print(f"\nSwapping row {i + 1} with row {max_row + 1}:")
+            print_matrix(A, B)
 
-     # Make the pivot element equal to 1
-   pivot = augmented_matrix[i, i]
-        if pivot != 0:
-            augmented_matrix[i] /= pivot
-            print(f"\nMaking the pivot in row {i+1} equal to 1:")
-            print(augmented_matrix)
+        # Make the pivot element equal to 1
+   pivot = A[i][i]
+        if pivot == 0:
+            raise ValueError("Matrix is singular, cannot proceed with Gaussian elimination.")
+
+   for j in range(i, n):
+            A[i][j] /= pivot
+        B[i] /= pivot
+        print(f"\nMaking the pivot in row {i + 1} equal to 1:")
+        print_matrix(A, B)
 
         # Eliminate elements below the pivot
-  for j in range(i + 1, n):
-            factor = augmented_matrix[j, i]
-            augmented_matrix[j] -= factor * augmented_matrix[i]
-            print(f"\nSubtracting {factor} * row {i+1} from row {j+1}:")
-            print(augmented_matrix)
+   for j in range(i + 1, n):
+            factor = A[j][i]
+            for k in range(i, n):
+                A[j][k] -= factor * A[i][k]
+            B[j] -= factor * B[i]
+            print(f"\nSubtracting {factor} * row {i + 1} from row {j + 1}:")
+            print_matrix(A, B)
 
      # Back-substitution to find the values of unknowns
-   x = np.zeros(n)
+  x = [0 for _ in range(n)]
     for i in range(n - 1, -1, -1):
-        x[i] = augmented_matrix[i, -1] - np.dot(augmented_matrix[i, i+1:n], x[i+1:n])
-        print(f"\nCalculating unknown x{i+1} = {x[i]}")
+        x[i] = B[i] - sum(A[i][j] * x[j] for j in range(i + 1, n))
+        print(f"\nCalculating unknown x{i + 1} = {x[i]}")
     return x
 
-# Input
-n = int(input("Enter the number of equations (and unknowns): "))
-A = []
-B = []
 
-print("\nEnter the coefficients for matrix A:")
-for i in range(n):
-    row = list(map(float, input(f"Enter the coefficients for equation {i+1}: ").split()))
-    A.append(row)
+def print_matrix(A, B):
+    for i in range(len(B)):
+        row = " ".join(f"{coeff:.2f}" for coeff in A[i])
+        print(f"{row} | {B[i]:.2f}")
 
-print("\nEnter the values for matrix B:")
-B = [float(input(f"Enter the resulting value for equation {i+1}: ")) for i in range(n)]
 
-A = np.array(A)
-B = np.array(B)
-
-# Solve the system using Gaussian elimination
+# Input and validation
 try:
-    solution = gaussian_elimination(A, B)
+    n = int(input("Enter the number of equations (and unknowns): "))
+    A = []
+    B = []
+
+ print("\nEnter the coefficients for matrix A:")
+    for i in range(n):
+        row = list(map(float, input(f"Enter the coefficients for equation {i + 1}: ").split()))
+        if len(row) != n:
+            raise ValueError(f"Expected {n} coefficients in equation {i + 1}, but got {len(row)}.")
+        A.append(row)
+
+   print("\nEnter the values for matrix B:")
+    B = [float(input(f"Enter the resulting value for equation {i + 1}: ")) for i in range(n)]
+
+    # Solve the system using Gaussian elimination
+ solution = gaussian_elimination(A, B)
     print("\nThe solution using Gaussian elimination is:")
     for i, x in enumerate(solution, 1):
         print(f"x{i} = {x}")
-except np.linalg.LinAlgError:
-    print("The matrix is singular and cannot be solved.")
+
+except ValueError as ve:
+    print("ValueError:", ve)
+except Exception as e:
+    print("An error occurred:", e)
